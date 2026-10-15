@@ -1,0 +1,30 @@
+{
+ "name": "Market Watch",
+ "short_name": "Market Watch",
+ "description": "Learn trading with fake money: charts, signals, practice and a time machine.",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#0f1a22",
+ "theme_color": "#0f1a22",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
