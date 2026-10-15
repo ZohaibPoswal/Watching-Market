@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1a22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Market Watch</title>
+<style>
+:root{--bg:#f3f6f8;--card:#fff;--text:#14212b;--muted:#5d6b76;--up:#0a8f5a;--down:#d1383d;--wait:#b07800;--line:#dbe3e8;--price:#14212b;--s20:#e08a00;--s50:#3b6fd4}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1a22;--card:#17252f;--text:#e8eff3;--muted:#93a4b0;--up:#3ddc97;--down:#ff6b70;--wait:#ffc857;--line:#263945;--price:#e8eff3;--s20:#ffb43a;--s50:#6c9bff}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;padding:calc(14px + env(safe-area-inset-top)) 14px calc(84px + env(safe-area-inset-bottom))}
+main{max-width:600px;margin:0 auto}
+h1{font-size:1.3rem;margin:0 0 12px}
+h2{font-size:1rem;margin:0 0 8px}
+button,input{font:inherit;color:var(--text)}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--s50);outline-offset:2px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}
+.chips button{flex:0 0 auto;min-height:44px;padding:0 16px;border-radius:22px;border:1px solid var(--line);background:var(--card);cursor:pointer}
+.chips button[aria-pressed="true"]{border-color:var(--s50);font-weight:700}
+.search{display:flex;gap:8px;margin-bottom:10px}
+.search input{flex:1;min-width:0;min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+.search button,.btn{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);cursor:pointer}
+#results button{display:block;width:100%;text-align:left;min-height:44px;padding:0 14px;margin-bottom:6px;border-radius:10px;border:1px solid var(--line);background:var(--card);cursor:pointer}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.price{font-size:1.8rem;font-weight:700}
+.up{color:var(--up)}.down{color:var(--down)}.wait{color:var(--wait)}
+svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:12px;font-size:.78rem;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:3px;margin-right:5px;vertical-align:middle}
+.big{font-size:2rem;font-weight:800;margin:0}
+.exp{color:var(--muted);font-size:.88rem;margin-top:3px}
+.row{margin-top:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.grid div{border:1px solid var(--line);border-radius:10px;padding:10px}
+.grid b{display:block;font-size:1.15rem}
+.warn{border-color:var(--wait)}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 16px;margin-bottom:10px}
+summary{min-height:48px;display:flex;align-items:center;font-weight:600;cursor:pointer}
+details p{margin:0 0 14px;color:var(--muted);font-size:.92rem;line-height:1.5}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;min-height:56px;border:0;background:none;cursor:pointer;font-size:.78rem;line-height:1.25}
+nav button[aria-pressed="true"]{font-weight:800;color:var(--s50)}
+#status,.note{color:var(--muted);font-size:.82rem;margin:10px 0}
+select{width:100%;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);margin-bottom:10px}
+.two{display:flex;gap:8px}.two button{flex:1}
+.hrow{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}
+.hrow:first-of-type{border-top:0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<div class="card warn" id="banner" role="alert" hidden><div id="btxt"></div><button class="btn" id="bclose" style="margin-top:10px">Dismiss</button></div>
+<section id="market">
+  <h1>Market Watch</h1>
+  <div class="card" id="welcome" hidden><h2>Welcome 👋</h2><div class="exp">1. Pick a coin and read the signal.<br>2. Practice with fake money in Practice.<br>3. Test yourself on past days in Replay.<br>Nothing here uses real money.</div><button class="btn" id="wok" style="margin-top:10px">Got it</button></div>
+  <div class="chips" id="chips"></div>
+  <div class="search"><input id="q" type="search" placeholder="Search any coin (e.g. polkadot)" aria-label="Search coin"><button id="go">Search</button></div>
+  <div id="results"></div>
+
+  <div class="card">
+    <div class="top">
+      <div><div class="exp" id="cname"></div><div class="price" id="price">–</div><div id="chg"></div></div>
+      <button class="btn" id="rm">Remove</button>
+    </div>
+    <svg id="chart" viewBox="0 0 600 260" role="img" aria-label="Price chart for the last 12 months"></svg>
+    <div class="legend"><span><i style="background:var(--price)"></i>Price</span><span><i style="background:var(--s20)"></i>20-day avg</span><span><i style="background:var(--s50)"></i>50-day avg</span></div>
+  </div>
+  <div class="card" id="signal"></div>
+  <div class="card" id="backtest"></div>
+  <div class="card" id="alerts">
+    <h2>Price alerts</h2>
+    <div class="exp">Alerts work while this app is open on your screen. Checked every 30 seconds.</div>
+    <div class="exp" id="acur" style="margin:8px 0"></div>
+    <div class="search"><input id="atarget" type="number" inputmode="decimal" min="0" placeholder="Target price in US dollars" aria-label="Target price in US dollars"></div>
+    <div class="two"><button class="btn" id="aup">Alert if it rises to</button><button class="btn" id="adown">Alert if it falls to</button></div>
+    <div class="exp" id="amsg" style="margin:10px 0"></div>
+    <div id="alist"></div>
+  </div>
+  <div id="status">Loading…</div>
+</section>
+
+<section id="replay" hidden>
+  <h1>Time machine</h1>
+  <div class="card">
+    <div class="exp">Travel to a random day in the past. You cannot see the future. You get $10,000 of fake money and 60 days. Can you beat just holding?</div>
+    <select id="rcoin" aria-label="Coin" style="margin-top:10px"></select>
+    <button class="btn" id="rstart" style="width:100%">Start time travel</button>
+    <div class="exp" id="rmsg" style="margin-top:8px"></div>
+  </div>
+  <div id="rgame" hidden>
+    <div class="card">
+      <div class="exp" id="rdate"></div><div class="price" id="rprice"></div><div class="exp" id="rleft"></div>
+      <svg id="rchart" viewBox="0 0 600 260" role="img" aria-label="Price chart up to today"></svg>
+      <div class="legend"><span><i style="background:var(--price)"></i>Price</span><span><i style="background:var(--s20)"></i>20-day avg</span><span><i style="background:var(--s50)"></i>50-day avg</span></div>
+    </div>
+    <div class="card"><h2>The app's signal today</h2><p class="big" id="rsig"></p><div class="exp" id="rwhy"></div></div>
+    <div class="card">
+      <div class="grid"><div><span class="exp">Cash</span><b id="rcash"></b></div><div><span class="exp">Coins value</span><b id="rcoins"></b></div></div>
+      <div class="exp" id="rtot" style="margin:10px 0"></div>
+      <div class="two"><button class="btn" id="rbuy">Invest all cash</button><button class="btn" id="rsell">Sell all</button></div>
+      <div class="two" style="margin-top:8px"><button class="btn" id="r1">Next day</button><button class="btn" id="r7">+7 days</button></div>
+    </div>
+  </div>
+  <div class="card" id="rresult" hidden></div>
+</section>
+
+<section id="learn" hidden>
+  <h1>Learn the basics</h1>
+  <details><summary>What do the price and the chart show?</summary><p>The chart shows the price at the end of each day for the last 12 months. Green or red numbers show the change compared with yesterday.</p></details>
+  <details><summary>What is a moving average?</summary><p>It is the average price of the last 20 or 50 days. It smooths out daily noise. When the price and the short average are above the long average, the trend is usually up.</p></details>
+  <details><summary>What is RSI?</summary><p>RSI measures how fast the price moved recently, on a scale from 0 to 100. Above 70 means a very fast rise (a pullback is possible). Below 30 means a very fast fall (a bounce is possible).</p></details>
+  <details><summary>What is MACD?</summary><p>MACD compares a fast and a slow average to measure momentum. When its histogram is positive, momentum is upward. When it is negative, momentum is downward.</p></details>
+  <details><summary>What is a backtest, and why is it not proof?</summary><p>A backtest checks how a rule would have performed in the past. It cannot promise the future. Markets change, and a rule that worked last year can fail next year.</p></details>
+  <details><summary>Basic risk rules</summary><p>Practice on a demo account first. Never trade money you cannot afford to lose. Do not follow one signal alone. Be careful with leverage, because it can multiply your losses.</p></details>
+  <p class="note">For learning only. This is not financial advice.</p>
+</section>
+
+<section id="practice" hidden>
+  <h1>Practice trading</h1>
+  <div class="card">
+    <div class="exp">Fake money. Nothing here is real.</div>
+    <div class="price" id="ptotal">$10,000</div>
+    <div id="ppl"></div>
+    <div class="grid"><div><span class="exp">Cash</span><b id="pcash"></b></div><div><span class="exp">In coins</span><b id="pcoins"></b></div></div>
+  </div>
+  <div class="card">
+    <h2>Make a practice trade</h2>
+    <select id="pc" aria-label="Coin"></select>
+    <div class="exp" id="pprice" style="margin:0 0 10px"></div>
+    <div class="search"><input id="pamt" type="number" inputmode="decimal" min="0" placeholder="Amount in US dollars" aria-label="Amount in US dollars"></div>
+    <div class="two" style="margin-bottom:10px"><button class="btn" data-f="0.25">25% of cash</button><button class="btn" data-f="0.5">50% of cash</button><button class="btn" data-f="1">All cash</button></div>
+    <div class="two"><button class="btn" id="buy">Buy</button><button class="btn" id="sell">Sell</button><button class="btn" id="sellall">Sell all</button></div>
+    <div class="exp" id="pmsg" style="margin-top:10px">Fee: 0.1% per trade, like a real broker.</div>
+  </div>
+  <div class="card"><h2>Your trade coach</h2><div id="coach"></div></div>
+  <div class="card"><h2>My coins</h2><div id="hold"></div></div>
+  <div class="card"><h2>Recent trades</h2><div id="hist"></div></div>
+  <button class="btn" id="reset" style="width:100%">Reset to $10,000</button>
+</section>
+
+<div class="card warn" id="riskcard"><div class="exp">Learning tool, not advice. Signals are often wrong and past results do not predict the future.</div></div>
+</main>
+<nav>
+  <button id="nm" aria-pressed="true"><span style="font-size:1.25rem;display:block">📈</span>Market</button>
+  <button id="np" aria-pressed="false"><span style="font-size:1.25rem;display:block">💰</span>Practice</button>
+  <button id="nr" aria-pressed="false"><span style="font-size:1.25rem;display:block">⏳</span>Replay</button>
+  <button id="nl" aria-pressed="false"><span style="font-size:1.25rem;display:block">📚</span>Learn</button>
+</nav>
+<script>
+const DEFAULTS=[{id:"bitcoin",name:"Bitcoin"},{id:"ethereum",name:"Ethereum"},{id:"solana",name:"Solana"},{id:"ripple",name:"XRP"},{id:"binancecoin",name:"BNB"},{id:"cardano",name:"Cardano"},{id:"dogecoin",name:"Dogecoin"},{id:"litecoin",name:"Litecoin"}];
+const $=id=>document.getElementById(id);
+const lastSig={},lastPx={};
+let coins=DEFAULTS.slice(),current=coins[0];
+try{const s=JSON.parse(localStorage.getItem("mw_coins")||"null");if(Array.isArray(s)&&s.length){coins=s;current=coins[0]}}catch(e){}
+function save(){try{localStorage.setItem("mw_coins",JSON.stringify(coins))}catch(e){}}
+const money=v=>v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:v<10?4:2});
+const pct=v=>(v>=0?"+":"")+v.toFixed(1)+"%";
+
+function sma(a,n){return a.map((_,i)=>i<n-1?null:a.slice(i-n+1,i+1).reduce((s,x)=>s+x,0)/n)}
+function ema(a,n){const k=2/(n+1);const o=[a[0]];for(let i=1;i<a.length;i++)o.push(a[i]*k+o[i-1]*(1-k));return o}
+function rsiSeries(a,n=14){
+  const out=a.map(()=>null);if(a.length<=n)return out;
+  let g=0,l=0;for(let i=1;i<=n;i++){const d=a[i]-a[i-1];d>=0?g+=d:l-=d}
+  g/=n;l/=n;out[n]=l===0?100:100-100/(1+g/l);
+  for(let i=n+1;i<a.length;i++){const d=a[i]-a[i-1];g=(g*(n-1)+Math.max(d,0))/n;l=(l*(n-1)+Math.max(-d,0))/n;out[i]=l===0?100:100-100/(1+g/l)}
+  return out;
+}
+function stateAt(s20,s50,r,i){
+  if(s50[i]===null||r[i]===null)return null;
+  if(s20[i]<s50[i])return "SELL";
+  return r[i]<70?"BUY":"WAIT";
+}
+function chartMsg(t){$("chart").innerHTML=`<text x="300" y="130" text-anchor="middle" font-size="18" style="fill:var(--muted)">${t}</text>`}
+function drawChart(p,s20,s50,t){
+  const W=600,H=260,pad=8,all=p.concat(s20.filter(x=>x!==null),s50.filter(x=>x!==null));
+  const min=Math.min(...all),max=Math.max(...all);
+  const x=i=>pad+i*(W-2*pad)/(p.length-1),y=v=>H-pad-(v-min)*(H-2*pad)/(max-min||1);
+  const line=(a,c,w)=>`<polyline points="${a.map((v,i)=>v===null?null:x(i).toFixed(1)+","+y(v).toFixed(1)).filter(Boolean).join(" ")}" fill="none" style="stroke:${c};stroke-width:${w}" stroke-linejoin="round"/>`;
+  $(t||"chart").innerHTML=line(s50,"var(--s50)",2)+line(s20,"var(--s20)",2)+line(p,"var(--price)",2.5);
+}
+function showSignal(p,s20,s50,r){
+  const i=p.length-1,st=stateAt(s20,s50,r,i);
+  lastSig[current.id]={st:st,rsi:r[i]};
+  const cls=st==="BUY"?"up":st==="SELL"?"down":"wait";
+  const why={BUY:"The 20-day average is above the 50-day average, and RSI is below 70.",SELL:"The 20-day average is below the 50-day average, so momentum is negative.",WAIT:"Momentum is positive, but RSI is 70 or higher. The price rose very fast."}[st];
+  const m=ema(p,12).map((v,k)=>v-ema(p,26)[k]);const sig=ema(m,9);const h=m[i]-sig[i];
+  $("signal").innerHTML=`<h2>Learning signal</h2><p class="big ${cls}">${st}</p><div class="exp">${why}</div>
+  <div class="row"><b>RSI: ${r[i].toFixed(0)}</b></div>
+  <div class="row"><b class="${h>=0?"up":"down"}">MACD: ${h>=0?"positive":"negative"}</b><div class="exp">${h>=0?"Momentum is upward right now.":"Momentum is downward right now."} (Shown for learning. It does not change the signal above.)</div></div>`;
+}
+function backtest(p,s20,s50,r){
+  const FEE=0.001;let inPos=false,cash=1,units=0,entry=0,trades=0,wins=0,start=null;
+  for(let i=0;i<p.length;i++){
+    const st=stateAt(s20,s50,r,i);if(st===null)continue;if(start===null)start=i;
+    if(st==="BUY"&&!inPos){units=cash*(1-FEE)/p[i];cash=0;inPos=true;entry=p[i]}
+    else if(st==="SELL"&&inPos){cash=units*p[i]*(1-FEE);units=0;inPos=false;trades++;if(p[i]>entry)wins++}
+  }
+  const e=p.length-1,fv=inPos?units*p[e]:cash,sr=(fv-1)*100,hr=(p[e]/p[start]-1)*100;
+  $("backtest").innerHTML=`<h2>Test on past data (${e-start} days)</h2><div class="exp">If you had followed the signal rules. Fees of 0.1% per trade included.</div>
+  <div class="grid"><div><span class="exp">Following the signal</span><b class="${sr>=0?"up":"down"}">${pct(sr)}</b></div><div><span class="exp">Just holding</span><b class="${hr>=0?"up":"down"}">${pct(hr)}</b></div>
+  <div><span class="exp">Completed trades</span><b>${trades}</b></div><div><span class="exp">Winning trades</span><b>${trades?wins+" of "+trades:"–"}</b></div></div>
+  <div class="exp" style="margin-top:10px">${sr>hr?"The signal beat holding here, but that may be luck.":"Holding beat the signal here. Simple signals are not magic."}</div>`;
+}
+async function load(){
+  $("status").textContent="Loading…";$("cname").textContent=current.name;chartMsg("Loading chart…");
+  try{
+    const res=await fetch("https://api.coingecko.com/api/v3/coins/"+encodeURIComponent(current.id)+"/market_chart?vs_currency=usd&days=365&interval=daily");
+    if(!res.ok)throw new Error(res.status);
+    const d=await res.json(),p=d.prices.map(x=>x[1]);
+    if(p.length<60)throw new Error("short");
+    const s20=sma(p,20),s50=sma(p,50),r=rsiSeries(p),last=p[p.length-1],ch=(last/p[p.length-2]-1)*100;
+    $("price").textContent=money(last);lastPx[current.id]=last;renderAlerts();
+    $("chg").textContent=(ch>=0?"+":"")+ch.toFixed(2)+"% vs yesterday";$("chg").className=ch>=0?"up":"down";
+    drawChart(p,s20,s50);showSignal(p,s20,s50,r);backtest(p,s20,s50,r);
+    $("status").textContent="Last updated: "+new Date().toLocaleTimeString();
+  }catch(e){chartMsg("Chart could not load. Check internet, wait a minute, then tap the coin.");$("status").textContent="Could not load data. Check your internet, or wait a minute (the free service has limits) and tap the coin again."}
+}
+function chips(){
+  $("chips").innerHTML="";
+  coins.forEach(c=>{const b=document.createElement("button");b.textContent=c.name;b.setAttribute("aria-pressed",c.id===current.id);b.onclick=()=>{current=c;chips();load()};$("chips").appendChild(b)});
+  $("rm").hidden=coins.length<2;
+}
+$("rm").onclick=()=>{coins=coins.filter(c=>c.id!==current.id);current=coins[0];save();chips();load()};
+async function search(){
+  const q=$("q").value.trim();if(!q)return;
+  $("results").innerHTML='<div class="exp">Searching…</div>';
+  try{
+    const r=await fetch("https://api.coingecko.com/api/v3/search?query="+encodeURIComponent(q));
+    const d=await r.json();$("results").innerHTML="";
+    if(!d.coins.length){$("results").innerHTML='<div class="exp">No coin found. Try another name.</div>';return}
+    d.coins.slice(0,5).forEach(c=>{const b=document.createElement("button");b.textContent=c.name+" ("+c.symbol+")";
+      b.onclick=()=>{if(!coins.some(x=>x.id===c.id))coins.push({id:c.id,name:c.name});current={id:c.id,name:c.name};save();$("results").innerHTML="";$("q").value="";chips();load()};
+      $("results").appendChild(b)});
+  }catch(e){$("results").innerHTML='<div class="exp">Search failed. Check your internet and try again.</div>'}
+}
+$("go").onclick=search;$("q").addEventListener("keydown",e=>{if(e.key==="Enter")search()});
+function tab(n){
+  ["market","practice","replay","learn"].forEach(k=>$(k).hidden=k!==n);
+  $("riskcard").hidden=n==="learn";
+  [["nm","market"],["np","practice"],["nr","replay"],["nl","learn"]].forEach(([b,k])=>$(b).setAttribute("aria-pressed",k===n));
+  window.scrollTo(0,0);if(n==="practice")renderPractice();if(n==="replay")fillReplay();
+}
+$("nm").onclick=()=>tab("market");$("np").onclick=()=>tab("practice");$("nr").onclick=()=>tab("replay");$("nl").onclick=()=>tab("learn");
+
+// ---------- Practice portfolio (fake money) ----------
+const START=10000,FEE=0.001;
+let pf={cash:START,hold:{},hist:[]},px={};
+try{const t=JSON.parse(localStorage.getItem("mw_pf")||"null");if(t&&typeof t.cash==="number")pf=t}catch(e){}
+function savePf(){try{localStorage.setItem("mw_pf",JSON.stringify(pf))}catch(e){}}
+const usd=v=>v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2});
+async function fetchPrices(){
+  const ids=[...new Set(Object.keys(pf.hold).concat(coins.map(c=>c.id)))].join(",");
+  const r=await fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(ids)+"&vs_currencies=usd");
+  if(!r.ok)throw new Error(r.status);
+  const d=await r.json();Object.keys(d).forEach(k=>{px[k]=d[k].usd});
+}
+function fillSelect(){
+  const sel=$("pc"),keep=sel.value,list=coins.slice();
+  Object.keys(pf.hold).forEach(id=>{if(!list.some(c=>c.id===id))list.push({id,name:pf.hold[id].name})});
+  sel.innerHTML=list.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+  if(keep&&list.some(c=>c.id===keep))sel.value=keep;
+}
+function coinName(id){const c=coins.find(x=>x.id===id);return c?c.name:(pf.hold[id]?pf.hold[id].name:id)}
+function drawPractice(){
+  let inCoins=0;Object.keys(pf.hold).forEach(id=>{inCoins+=pf.hold[id].units*(px[id]||0)});
+  const total=pf.cash+inCoins,pl=total-START;
+  $("ptotal").textContent=usd(total);
+  $("ppl").textContent=(pl>=0?"+":"")+usd(pl)+" ("+pct(pl/START*100)+") since start";$("ppl").className=pl>=0?"up":"down";
+  $("pcash").textContent=usd(pf.cash);$("pcoins").textContent=usd(inCoins);
+  const ids=Object.keys(pf.hold);
+  $("hold").innerHTML=ids.length?ids.map(id=>{const h=pf.hold[id],v=h.units*(px[id]||0),g=v-h.cost;
+    return `<div class="hrow"><div><b>${h.name}</b><div class="exp">${h.units.toPrecision(5)} units</div></div><div style="text-align:right"><b>${usd(v)}</b><div class="${g>=0?"up":"down"}">${g>=0?"+":""}${usd(g)}</div></div></div>`}).join(""):'<div class="exp">No coins yet. Make your first practice trade above.</div>';
+  $("hist").innerHTML=pf.hist.length?pf.hist.slice(0,10).map(t=>`<div class="hrow"><div>${t.side} ${t.name}<div class="exp">${t.time}</div></div><div style="text-align:right">${usd(t.amount)}<div class="exp">at ${money(t.price)}</div></div></div>`).join(""):'<div class="exp">No trades yet.</div>';
+  const id=$("pc").value;$("pprice").textContent=px[id]?"Current price: "+money(px[id]):"";
+  coach();
+}
+async function renderPractice(){
+  fillSelect();drawPractice();
+  try{await fetchPrices();drawPractice()}catch(e){$("pmsg").textContent="Could not load prices. Check your internet or wait a minute, then reopen this tab."}
+}
+function trade(side,all){
+  const id=$("pc").value,price=px[id],msg=$("pmsg");
+  if(!price){msg.textContent="Price is not loaded yet. Wait a moment and try again.";return}
+  let amt=parseFloat($("pamt").value);
+  const h=pf.hold[id];
+  let pl=null,sig=null;
+  if(side==="Sell"&&all){if(!h){msg.textContent="You do not own this coin.";return}amt=h.units*price}
+  if(!(amt>0)){msg.textContent="Enter an amount in US dollars.";return}
+  if(side==="Buy"){
+    if(amt>pf.cash+1e-9){msg.textContent="Not enough cash. You have "+usd(pf.cash)+".";return}
+    const units=amt*(1-FEE)/price,cur=pf.hold[id]||{name:coinName(id),units:0,cost:0};
+    cur.units+=units;cur.cost+=amt;pf.hold[id]=cur;pf.cash-=amt;sig=lastSig[id]||null;
+  }else{
+    if(!h||amt>h.units*price+1e-6){msg.textContent="You do not own that much. Your value in this coin is "+usd(h?h.units*price:0)+".";return}
+    const frac=Math.min(1,amt/(h.units*price));pl=amt*(1-FEE)-h.cost*frac;
+    h.cost-=h.cost*frac;h.units-=h.units*frac;pf.cash+=amt*(1-FEE);
+    if(h.units<1e-9)delete pf.hold[id];
+  }
+  pf.hist.unshift({side,name:coinName(id),amount:amt,price,time:new Date().toLocaleString(),ts:Date.now(),sig,pl});
+  pf.hist=pf.hist.slice(0,50);savePf();$("pamt").value="";
+  msg.textContent=side+" done: "+usd(amt)+" of "+coinName(id)+".";
+  fillSelect();$("pc").value=id;drawPractice();
+}
+// ---------- Trade coach: reviews YOUR habits, not the market ----------
+function coach(){
+  const H=pf.hist,el=$("coach");
+  if(H.length<3){el.innerHTML='<div class="exp">Make at least 3 practice trades and I will review how you trade, in plain English.</div>';return}
+  const n=[],add=(ok,t)=>n.push(`<div class="hrow"><div>${ok?"✅":"⚠️"}</div><div style="flex:1">${t}</div></div>`);
+  let inCoins=0,big=0,bigName="";
+  Object.keys(pf.hold).forEach(id=>{const v=pf.hold[id].units*(px[id]||0);inCoins+=v;if(v>big){big=v;bigName=pf.hold[id].name}});
+  const total=pf.cash+inCoins;
+  const day=H.filter(t=>t.ts&&Date.now()-t.ts<864e5).length;
+  if(day>=8)add(false,"You made "+day+" trades in the last 24 hours. Trading a lot often means more fees and more emotional decisions.");
+  if(total>0&&big/total>0.6)add(false,bigName+" is "+Math.round(big/total*100)+"% of your account. If it falls, your whole account falls. Spreading money across several coins lowers this risk.");
+  else if(inCoins>0)add(true,"Your money is not all in one coin. That lowers your risk.");
+  if(total>0&&pf.cash/total<0.1)add(false,"You have almost no cash left. Keeping some cash helps you handle surprises.");
+  const sb=H.filter(t=>t.side==="Buy"&&t.sig);
+  if(sb.length>=2){
+    const bad=sb.filter(t=>t.sig.st==="SELL"||t.sig.rsi>=70).length;
+    add(bad===0,bad?bad+" of your "+sb.length+" buys were made when the app's signal said SELL or RSI was 70 or higher. Before each buy, ask yourself: what is my reason?":"Your buys matched the app's signals. Remember that signals can still be wrong.");
+  }
+  const sells=H.filter(t=>t.side==="Sell"&&typeof t.pl==="number");
+  if(sells.length>=2){
+    const w=sells.filter(t=>t.pl>0),l=sells.filter(t=>t.pl<=0);
+    const aw=w.length?w.reduce((a,t)=>a+t.pl,0)/w.length:0,al=l.length?-l.reduce((a,t)=>a+t.pl,0)/l.length:0;
+    add(al<=aw,"You closed "+sells.length+" trades: "+w.length+" won and "+l.length+" lost. Average win: "+usd(aw)+". Average loss: "+usd(al)+"."+(al>aw?" Your losses are bigger than your wins. Decide your exit point before you buy.":" Your wins are at least as big as your losses. Good."));
+  }
+  Object.keys(pf.hold).forEach(id=>{
+    const h=pf.hold[id];if(!px[id]||h.cost<=0)return;
+    const g=(h.units*px[id]/h.cost-1)*100;
+    if(g<=-10)add(false,h.name+" is down "+Math.abs(g).toFixed(0)+"%. Decide in advance when you would sell, so a loss does not turn into hope.");
+  });
+  if(!n.length)add(true,"No problems found yet. Keep trading carefully.");
+  el.innerHTML=n.join("")+'<div class="exp" style="margin-top:10px">Tip: before every buy, write down why you are buying and when you will sell.</div>';
+}
+
+// ---------- Time machine: replay a random past period ----------
+const hcache={};let rp=null;
+async function getSeries(id){
+  if(hcache[id])return hcache[id];
+  const r=await fetch("https://api.coingecko.com/api/v3/coins/"+encodeURIComponent(id)+"/market_chart?vs_currency=usd&days=365&interval=daily");
+  if(!r.ok)throw new Error(r.status);
+  const d=await r.json(),o={p:d.prices.map(x=>x[1]),t:d.prices.map(x=>x[0])};
+  o.s20=sma(o.p,20);o.s50=sma(o.p,50);o.r=rsiSeries(o.p);hcache[id]=o;return o;
+}
+function fillReplay(){const k=$("rcoin").value;$("rcoin").innerHTML=coins.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");if(k&&coins.some(c=>c.id===k))$("rcoin").value=k}
+const dfmt=t=>new Date(t).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});
+async function rstart(){
+  const id=$("rcoin").value,c=coins.find(x=>x.id===id),m=$("rmsg");
+  if(!c)return;m.textContent="Loading history…";$("rstart").disabled=true;
+  try{
+    const d=await getSeries(id);if(d.p.length<130)throw new Error("short");
+    const st=55+Math.floor(Math.random()*(d.p.length-61-55));
+    rp={name:c.name,d,i:st,s0:st,end:st+60,cash:START,units:0};
+    $("rresult").hidden=true;$("rgame").hidden=false;m.textContent="";rdraw();
+  }catch(e){m.textContent="Could not load history. Check your internet, wait a minute, and try again."}
+  $("rstart").disabled=false;
+}
+function rdraw(){
+  const d=rp.d,i=rp.i,f=Math.max(0,i-90),pr=d.p[i],st=stateAt(d.s20,d.s50,d.r,i),done=i>=rp.end;
+  drawChart(d.p.slice(f,i+1),d.s20.slice(f,i+1),d.s50.slice(f,i+1),"rchart");
+  $("rdate").textContent=rp.name+" on "+dfmt(d.t[i]);$("rprice").textContent=money(pr);
+  $("rleft").textContent=done?"Time travel finished":(rp.end-i)+" days left";
+  $("rsig").textContent=st;$("rsig").className="big "+(st==="BUY"?"up":st==="SELL"?"down":"wait");
+  $("rwhy").textContent={BUY:"The 20-day average is above the 50-day average, and RSI is below 70.",SELL:"The 20-day average is below the 50-day average.",WAIT:"Momentum is positive, but RSI is 70 or higher."}[st]+" RSI: "+d.r[i].toFixed(0)+". You do not have to follow it.";
+  const cv=rp.units*pr,tot=rp.cash+cv;
+  $("rcash").textContent=usd(rp.cash);$("rcoins").textContent=usd(cv);
+  $("rtot").textContent="Total: "+usd(tot)+" ("+pct((tot/START-1)*100)+")";
+  ["rbuy","rsell","r1","r7"].forEach(b=>$(b).disabled=done);
+}
+function radv(n){
+  if(!rp||rp.i>=rp.end)return;
+  rp.i=Math.min(rp.end,rp.i+n);rdraw();if(rp.i>=rp.end)rfinish();
+}
+function rfinish(){
+  const d=rp.d,pr=d.p[rp.i],fin=rp.cash+rp.units*pr*(1-FEE);
+  const hold=START*(1-FEE)*(1-FEE)*pr/d.p[rp.s0],you=(fin/START-1)*100,h=(hold/START-1)*100,diff=you-h;
+  $("rresult").innerHTML=`<h2>Time travel finished</h2><div class="exp">${dfmt(d.t[rp.s0])} to ${dfmt(d.t[rp.i])}, ${rp.name}</div>
+  <div class="grid"><div><span class="exp">You</span><b class="${you>=0?"up":"down"}">${pct(you)}</b></div><div><span class="exp">Just holding</span><b class="${h>=0?"up":"down"}">${pct(h)}</b></div></div>
+  <div class="exp" style="margin:10px 0">${diff>=0?"You beat holding by "+diff.toFixed(1)+" points.":"Holding did better by "+Math.abs(diff).toFixed(1)+" points."} One game is only one example. Try other coins and other dates.</div>
+  <button class="btn" id="ragain" style="width:100%">Play again</button>`;
+  $("rresult").hidden=false;$("ragain").onclick=rstart;$("rresult").scrollIntoView({behavior:"smooth"});
+}
+$("rstart").onclick=rstart;$("r1").onclick=()=>radv(1);$("r7").onclick=()=>radv(7);
+$("rbuy").onclick=()=>{if(rp&&rp.cash>=1){rp.units+=rp.cash*(1-FEE)/rp.d.p[rp.i];rp.cash=0;rdraw()}};
+$("rsell").onclick=()=>{if(rp&&rp.units>0){rp.cash+=rp.units*rp.d.p[rp.i]*(1-FEE);rp.units=0;rdraw()}};
+document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{$("pamt").value=Math.floor(pf.cash*parseFloat(b.dataset.f)*100)/100});
+$("wok").onclick=()=>{$("welcome").hidden=true;try{localStorage.setItem("mw_seen","1")}catch(e){}};
+try{if(!localStorage.getItem("mw_seen"))$("welcome").hidden=false}catch(e){$("welcome").hidden=false}
+
+$("buy").onclick=()=>trade("Buy");$("sell").onclick=()=>trade("Sell");$("sellall").onclick=()=>trade("Sell",true);
+$("pc").onchange=drawPractice;
+$("reset").onclick=()=>{if(confirm("Reset your practice account to $10,000?")){pf={cash:START,hold:{},hist:[]};savePf();renderPractice()}};
+
+
+// ---------- Price alerts (work while the app is open) ----------
+let alerts=[];try{const a=JSON.parse(localStorage.getItem("mw_alerts")||"[]");if(Array.isArray(a))alerts=a}catch(e){}
+function saveA(){try{localStorage.setItem("mw_alerts",JSON.stringify(alerts))}catch(e){}}
+function renderAlerts(){
+  const c=lastPx[current.id];
+  $("acur").textContent=current.name+(c?" now: "+money(c):"");
+  $("alist").innerHTML=alerts.length?alerts.map((a,i)=>`<div class="hrow"><div><b>${a.name}</b> ${a.dir==="above"?"rises to":"falls to"} ${money(a.target)}<div class="exp">${a.done?"Triggered "+a.at:"Waiting…"}</div></div><button class="btn" data-i="${i}" aria-label="Delete alert">Delete</button></div>`).join(""):'<div class="exp">No alerts yet.</div>';
+  document.querySelectorAll("#alist button").forEach(b=>b.onclick=()=>{alerts.splice(+b.dataset.i,1);saveA();renderAlerts()});
+}
+function addAlert(dir){
+  const t=parseFloat($("atarget").value),cur=lastPx[current.id],m=$("amsg");
+  if(!(t>0)){m.textContent="Enter a target price in US dollars.";return}
+  if(!cur){m.textContent="Wait for the price to load, then try again.";return}
+  if(dir==="above"&&t<=cur){m.textContent="The target must be higher than the current price ("+money(cur)+").";return}
+  if(dir==="below"&&t>=cur){m.textContent="The target must be lower than the current price ("+money(cur)+").";return}
+  alerts.push({id:current.id,name:current.name,dir:dir,target:t,done:false});saveA();$("atarget").value="";
+  m.textContent="Alert saved. Keep this app open to receive it.";
+  try{if("Notification" in window&&Notification.permission==="default")Notification.requestPermission()}catch(e){}
+  renderAlerts();checkAlerts();
+}
+function showBanner(t){
+  $("btxt").textContent=t;$("banner").hidden=false;
+  try{if(navigator.vibrate)navigator.vibrate([200,100,200])}catch(e){}
+  try{if("Notification" in window&&Notification.permission==="granted")new Notification("Price alert",{body:t})}catch(e){}
+}
+async function checkAlerts(){
+  const act=alerts.filter(a=>!a.done);if(!act.length)return;
+  try{
+    const ids=[...new Set(act.map(a=>a.id))].join(",");
+    const r=await fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(ids)+"&vs_currencies=usd");
+    if(!r.ok)return;const d=await r.json(),hit=[];
+    act.forEach(a=>{const v=d[a.id]&&d[a.id].usd;if(typeof v!=="number")return;
+      if((a.dir==="above"&&v>=a.target)||(a.dir==="below"&&v<=a.target)){a.done=true;a.at=new Date().toLocaleString();hit.push(a.name+" is now "+money(v)+". Your target was "+money(a.target)+".")}});
+    if(hit.length){saveA();renderAlerts();showBanner(hit.join(" "))}
+  }catch(e){}
+}
+$("aup").onclick=()=>addAlert("above");$("adown").onclick=()=>addAlert("below");$("bclose").onclick=()=>{$("banner").hidden=true};
+chips();load();setInterval(load,60000);setInterval(checkAlerts,30000);renderAlerts();checkAlerts();
+</script>
+</body>
+</html>
